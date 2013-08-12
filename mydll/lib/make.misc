@@ -1,0 +1,6 @@
+include ../make.inc
+
+all: $(MISCOBJ)
+
+%.o: ../src/misc/%.cxx
+	$(CXX) -c $(CXXFLAGS) $<

@@ -1,0 +1,6 @@
+include ../make.inc
+
+all: $(MINIMIZATIONOBJ)
+
+%.o: ../src/yl_minimization/%.cxx
+	$(CXX) -c $(CXXFLAGS) $<

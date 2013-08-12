@@ -1,0 +1,7 @@
+include ../make.inc
+
+all: $(SUBPLEXOBJ)
+
+%.o: ../src/yl_subplex/%.cxx
+	$(CXX) -c $(CXXFLAGS) $<
+

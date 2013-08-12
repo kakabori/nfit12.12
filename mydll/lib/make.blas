@@ -1,0 +1,6 @@
+include ../make.inc
+
+all: $(BLASOBJ)
+
+%.o: ../src/yl_blas/%.cxx
+	$(CXX) -c $(CXXFLAGS) $<
