@@ -1,4 +1,3 @@
-#include "modelcalculator.h"
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_sf_bessel.h>
@@ -8,10 +7,12 @@
 #include <fstream>
 #include <sstream>
 #include <errno.h>
-#include "globalVariables.h"
 #include <stdexcept>
+#include "globalVariables.h"
+#include "modelcalculator.h"
 
-using std::string; using std::ifstream; using std::getline; using std::istringstream;
+using std::string; using std::ifstream; using std::getline; 
+using std::istringstream;
 using std::vector; using std::cout; using std::endl;
 using std::cerr;
 
@@ -23,10 +24,23 @@ using std::cerr;
 #define KEY 6
 #define ARB_SCALE 10000000
 
+
 ModelCalculator::ModelCalculator()
 {
   setOmega(g_omega); // the angle of incidence
+  helpConstructor();
+}
 
+
+ModelCalculator::ModelCalculator(double omega)
+{
+  setOmega(omega);
+  helpConstructor();
+}
+
+
+void ModelCalculator::helpConstructor()
+{
   //Turn off the error handler in gsl_integration_qag
   gsl_set_error_handler_off();
   //For qag numerical integration routine
@@ -38,6 +52,7 @@ ModelCalculator::ModelCalculator()
   spHr.init(s_HrWrapper, this);
   resetTOL();
 }
+
 
 /****************************************************************************************
 Cloning constructor that initializes necessary structures and copies
@@ -81,6 +96,7 @@ ModelCalculator::ModelCalculator(const ModelCalculator& mc)
 	set_beamSigma();
 }
 
+
 /******************************************************************************
 Clean up resouces. Should be called before the object is destructed.
 ******************************************************************************/
@@ -88,6 +104,7 @@ void ModelCalculator::cleanup()
 {
   gsl_integration_workspace_free(workspace);
 }
+
 
 /******************************************************************************
 set tolerance for interpolation
@@ -98,6 +115,7 @@ void ModelCalculator::resetTOL()
   spsumn.setol(g_spsumnAbserr, g_spsumnRelerr, g_spsumnMindx, g_spsumnMaxdx);
   spHr.setol(g_spHrAbserr, g_spHrRelerr, g_spHrMindx, g_spHrMaxdx);
 }
+
 
 /******************************************************************************
 Build an interpolant for the structure factor.
@@ -129,6 +147,7 @@ void ModelCalculator::QxSlice(double qxlow, double qxhigh)
   spStrFct.findPoints( log(qrlow+SMALLNUM), log(qrhigh+SMALLNUM) );
 }
 
+
 /******************************************************************************
 FuncLmdif::modelCalcThread calls this function.
 Return structure factor that one would see on a CCD detector, meaning
@@ -145,6 +164,7 @@ double ModelCalculator::getCCDStrFct(double qx)
 		return interpStrFct(qx);
 	}
 }
+
 
 /******************************************************************************
 This function takes care of beam FWHM convolution with structure factor.
@@ -164,6 +184,7 @@ double ModelCalculator::beamConvolutedStrFct(double qx)
   return result;
 }
 
+
 /******************************************************************************
 Return the integrand for the integration that performs beam convolution
 ******************************************************************************/
@@ -173,6 +194,7 @@ double ModelCalculator::s_convIntegrand(double qx, void *params)
 	return p->interpStrFct(fabs(qx)) * p->beamProfile(qx - p->currQx);
 }
 
+
 /******************************************************************************
 Return the beam profile in q-space. It is assumed to be Gaussian.
 ******************************************************************************/
@@ -180,6 +202,7 @@ double ModelCalculator::beamProfile(double qx)
 {
 	return exp(-qx * qx / 2 / beamSigma / beamSigma) / sqrt(2 * PI) / beamSigma;
 }
+
 
 /******************************************************************************
 This function returns the interpolated value of the structure factor
@@ -192,12 +215,13 @@ double ModelCalculator::interpStrFct(double qx)
   return exp( spStrFct.val(log(qr+SMALLNUM)) );
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 Static wrapper for structure factor along qr direction
 The input is log(qr), base e
 Returns log(S(qr,qz))
 This wrapper is necessary for FunSupport object
-****************************************************************************************/
+******************************************************************************/
 double ModelCalculator::s_StrFctWrapper(double logqr, void *ptr)
 {
   ModelCalculator *p = (ModelCalculator *)ptr;
@@ -212,10 +236,11 @@ double ModelCalculator::s_StrFctWrapper(double logqr, void *ptr)
   return log(ret);
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 This function calculates the structure factor as a function of qr for a fixed value
 of qz specified by qz variable
-****************************************************************************************/
+******************************************************************************/
 double ModelCalculator::StrFct(double qr)
 {
   currQr = qr;
@@ -229,6 +254,7 @@ double ModelCalculator::StrFct(double qr)
                                WORKSPACE_SIZE, KEY, workspace, &result, &abserr);
   return result;
 }
+
 
 /******************************************************************************
 This calculates f_2(r,qr) integrand
@@ -244,13 +270,14 @@ double ModelCalculator::s_Fr(double r, void *ptr)
           * p->spsumn.val(log(r+SMALLNUM)) / ARB_SCALE;
 }
 
+
 /******************************************************************************
 static function that wraps ModelCalculator::sumn, so that it can be passed to
 FunSupport::init
 FunSupport evaluates this function at constant log(r) step. This function
 converts log(r) to r. SMALLNUM is used to avoid Nan coming from exp(log(0)).
-When compiled under g++, as of 7/3/2013, log(0) yields -inf, but exp(log(0)) yeilds Nan,
-instead of 0.
+When compiled under g++, as of 7/3/2013, log(0) yields -inf, but exp(log(0)) 
+yeilds Nan, instead of 0.
 SMALLNUM is added to r, like log(r+SMALLNUM), when an interpolated value gets
 retrieved.
 ******************************************************************************/
@@ -260,6 +287,7 @@ double ModelCalculator::s_sumnWrapper(double logr, void *ptr)
   double tmpR = fabs( exp(logr) - SMALLNUM );
   return p->sumn(tmpR);
 }
+
 
 /******************************************************************************
 Calculate the sum over layer index, n.
@@ -271,15 +299,18 @@ double ModelCalculator::sumn(double r)
   double un, t1, t2;
   double qz2 = qz * qz;
   double qzsig2 = (qz * edisp) * (qz * edisp);
+  double lambda = 1e16 * sqrt(Kc/B) / dspacing;
+  double eta = 2.17 * (T+273.15) / sqrt(Kc*B) / dspacing /dspacing;
 
-  //Calculate n=0 term separately because it has 1/2 weight relatively to n>0 terms
+  // Calculate n = 0 term separately because it has 1/2 weight relatively to 
+  // n > 0 terms
   int n = 0;
-  un = out * utable.getInterpData_log(n, r*in);
+  un = utable.getHeightDiffFunc(n, r, lambda, eta, dspacing);
   t1 = 1 + qzsig2 * un;
   t2 = n * dspacing;
   sum += Hz(n) * sqrt(1/t1) * exp( -0.5*(qz2*un+t2*t2*qzsig2)/t1 ) * cos(t2*qz/t1);
   for(n = 1; n < cutoff_n; n++) {
-    un = out*utable.getInterpData_log(n, r*in);
+    un = utable.getHeightDiffFunc(n, r, lambda, eta, dspacing);
     t1 = 1 + qzsig2 * un;
     t2 = n * dspacing;
     sum += 2 * Hz(n) * sqrt(1/t1) * exp( -0.5*(qz2*un+t2*t2*qzsig2)/t1 ) * cos(t2*qz/t1);
@@ -287,20 +318,22 @@ double ModelCalculator::sumn(double r)
   return sum;
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 Static function that wrapps ModelCalculator::Hr
-****************************************************************************************/
+******************************************************************************/
 double ModelCalculator::s_HrWrapper(double r, void *ptr)
 {
   ModelCalculator *p = (ModelCalculator *)ptr;
   return p->Hr(r);
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 Effective finite size factor in r direction, H_r(r)
 The upper limit is chosen to be 10 times the cutoff in r integration.
 The factor of 10 is somewhat arbitrary.
-****************************************************************************************/
+******************************************************************************/
 double ModelCalculator::Hr(double r)
 {
   curr_r = r;
@@ -311,31 +344,34 @@ double ModelCalculator::Hr(double r)
   double lowerLimit = r;
   double upperLimit = 10 * cutoff_r;
   gsl_integration_qag(&F, lowerLimit, upperLimit, g_epsabs, g_epsrel,
-                               WORKSPACE_SIZE, KEY, workspace, &result, &abserr);
+                      WORKSPACE_SIZE, KEY, workspace, &result, &abserr);
   return PI * result;
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 The integrand in H_r(r) integration
-****************************************************************************************/
+******************************************************************************/
 double ModelCalculator::s_HrIntegrand(double Lr, void *params)
 {
   ModelCalculator *p = (ModelCalculator *)params;
   return Pr(Lr, p->avgLr) * Lr * Lr * finiteSizeFactor(p->curr_r / Lr);
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 In-plane domain size distribution
 Can be changed to another function easily
-****************************************************************************************/
+******************************************************************************/
 double Pr(double Lr, double avgLr)
 {
   return exp(-Lr / avgLr) / avgLr;
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 Finite size factor in r direction, F_r(r/Lr)
-****************************************************************************************/
+******************************************************************************/
 double finiteSizeFactor(double x)
 {
   if (x > 1) {
@@ -345,20 +381,23 @@ double finiteSizeFactor(double x)
   }
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 Effective finite size factor in z direction, H_z(nD)
-****************************************************************************************/
+Can be changed to another function easily
+******************************************************************************/
 double ModelCalculator::Hz(int n)
 {
 	return exp(-n/avgMz);
   //return n * dspacing * exp(-n/avgMz);
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 Given the values of qx, qz, the angle of incidence, and wavelength
 return the value of qy, which is constrainted by the geometry of an experiment
 for an oriented sample. For details, see a relevant report.
-****************************************************************************************/
+******************************************************************************/
 double getCurrQy(double qx, double qz, double omega, double wavelength)
 {
   double phi = atan(qz/qx);
@@ -367,23 +406,26 @@ double getCurrQy(double qx, double qz, double omega, double wavelength)
            / wavelength;
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 given a slice with qz = tqz, update necessary temporary variables
 and tables.
-****************************************************************************************/
+******************************************************************************/
 void ModelCalculator::setSliceParameter(double _qz)
 {
   qz = _qz;
   spsumn.findPoints( log(0+SMALLNUM), log(cutoff_r+SMALLNUM) );
 }
 
+
 void ModelCalculator::KcBDTChanged()
 {
-  double lambda = 1e16 * sqrt(Kc/B) / dspacing;
-  double eta = 2.17 * (T+273.15) / sqrt(Kc*B) / dspacing /dspacing;
-  in = sqrt(utable.lambda * utable.D / lambda / dspacing);
-  out = eta * dspacing * dspacing / utable.D / utable.D / utable.eta;
+  //double lambda = 1e16 * sqrt(Kc/B) / dspacing;
+  //double eta = 2.17 * (T+273.15) / sqrt(Kc*B) / dspacing /dspacing;
+  //in = sqrt(utable.lambda * utable.D / lambda / dspacing);
+  //out = eta * dspacing * dspacing / utable.D / utable.D / utable.eta;
 }
+
 
 /******************************************************************************
 update domain size parameters
@@ -480,34 +522,6 @@ void ModelCalculator::paraSet(Para *p)
 }
 
 
-/****************************************************************************************
-zeroth order Bessel function of the first kind, taken from Numerical Recipes
-****************************************************************************************/
-double bessel_J0(double x)
-{
-	double ax, z;
-	double xx, y, ans, ans1, ans2;
-
-	if ((ax = fabs(x)) < 8.0) {
-		y = x * x;
-		ans1 = 57568490574.0 + y * (-13362590354.0 + y * (651619640.7 + y * (-11214424.18
-		+ y * (77392.33017 + y * (-184.9052456)))));
-		ans2 = 57568490411.0 + y * (1029532985.0 + y * (9494680.718 + y * (59272.64853 +
-		y * (267.8532712 + y * 1.0))));
-		ans = ans1 / ans2;
-	} else {
-		z = 8.0 / ax;
-		y = z * z;
-		xx = ax - 0.785398164;
-		ans1 = 1.0 + y * (-0.1098628627e-2 + y * (0.2734510407e-4 + y * (-0.2073370639e-5 +
-		y * 0.2093887211e-6)));
-		ans2 = -0.1562499995e-1 + y * (0.1430488765e-3 + y * (-0.6911147651e-5 +
-		y * (0.7621095161e-6 - y * 0.934935152e-7)));
-		ans = sqrt(0.636619772 / ax) * (cos(xx) * ans1 - z * sin(xx) * ans2);
-	}
-	return ans;
-}
-
 void ModelCalculator::get_spStrFctPoints(vector<double>& x, vector<double>& y)
 {
 	spStrFct.getPoints(x, y);
@@ -557,22 +571,6 @@ void ModelCalculator::getHr(double rlow, double rhigh, vector<double>& rvec, vec
 	}
 }
 
-/****************************************************************************************
-for deugging, check with old u tables
-****************************************************************************************/
-void ModelCalculator::test_utable(ostream& out, double r, int opt)
-{
-  if(opt==0){
-    for(int i=0; i<utable.Mmax; i++){
-      out<<i<< ' '<<utable.getInterpData_log(i,r)<<'\n';
-    }
-  } else {
-    int i = (int)r;
-    for(double logr=1e-3; logr<utable.logrmax; logr+= utable.logrstep){
-      out<<logr<< ' '<<utable.getInterpData_log(i,exp(logr) )<<'\n';
-    }
-  }
-}
 
 /*
 void saveDoubleColumns(vector<double>& xvec, vector<double>& yvec, const char *filename)

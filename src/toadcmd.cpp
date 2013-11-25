@@ -46,26 +46,11 @@ int descending = 0;
 int verticalfit = 0;
 double tmpsigma = 1e-7;
 extern double dupe;
-
 extern double aFactor;
 extern double backgroundSigmaSquare;
 extern int updateSigma;
 extern int nthreads;
 
-extern double g_spStrFctAbserr;
-extern double g_spStrFctRelerr;
-extern double g_spStrFctMindx;
-extern double g_spStrFctMaxdx;
-extern double g_spsumnAbserr;
-extern double g_spsumnRelerr;
-extern double g_spsumnMindx;
-extern double g_spsumnMaxdx;
-extern double g_spHrAbserr;
-extern double g_spHrRelerr;
-extern double g_spHrMindx;
-extern double g_spHrMaxdx;
-
-extern double g_omega;
 const char *Varname[] = {
   "Kc", "B", "Lr", "Mz", "D", "mosaic", "edisp", "bFWHM",
   "s", "bc2b", "wavelength", "pixelSize","qxzero","nindex",
@@ -98,39 +83,42 @@ Tcl_AsyncHandler resetHandler;
 Tcl_AsyncHandler timerHandler;
 
 int colorMIN, colorMAX, colorBOT, colorSAT, colorFIL;
-
 double STresult;
-
 Tcl_HashTable datasetHT;
 Tcl_HashTable modelccHT;
 Tcl_HashTable paraHT;
-
 Para g_ParaStruct;
-
-
 GlobalData gData;
 BoxVec boxvec;
 YFImgBase *imgshown=NULL;
 
 const char *YFtypeOptions[] = {"uint16", "int16", "float", (char *) NULL};
 
-void textcolor(FILE* fp, int attr, int fg, int bg){
+
+void textcolor(FILE* fp, int attr, int fg, int bg)
+{
   fprintf(fp, "%c[%d;%d;%dm", 0x1B, attr, fg + 30, bg + 40);
 }
 
-void textcolor(ostream& out, int attr, int fg, int bg){
+
+void textcolor(ostream& out, int attr, int fg, int bg)
+{
   char command[13];
   sprintf(command, "%c[%d;%d;%dm", 0x1B, attr, fg + 30, bg + 40);
   out<<command;
 }
 
 
-void checkImgUpdate(YFImgBase *img){
+void checkImgUpdate(YFImgBase *img)
+{
   /* check if the screen should be updated */
   if(img==imgshown) img->show(gData.tv_photoHd, &(gData.csetup));
 }
 
-int TV_BoxV(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *const objv[]){
+
+int TV_BoxV(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const objv[])
+{
   /* handle the 'boxv' command */
   static const char *boxOptions[] = {
     "2nd", "1st", "del", "halo", "3rd", "coords", "set",
@@ -224,10 +212,12 @@ int TV_BoxV(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *const o
   return TCL_OK;
 }
 
+
 int tv_checkImgValidity_( int imgNum ){
   // for debugging
   return ( imgNum >= (int)gData.imgPtrVec.size() || imgNum < 0) ? TCL_ERROR : TCL_OK;
 }
+
 
 /*
   The image pointers are stored in a hash table and also in an array
@@ -238,6 +228,7 @@ int tv_getExistingImgNum(YFImgBase* imgPtr){
     if(gData.imgPtrVec[i]==imgPtr) return i;
   return -1;
 }
+
 
 int TV_ColorSetup(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *const objv[]){
   /* handles the 'colorsetup' command */
@@ -370,6 +361,7 @@ int NK_qzrexport(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *co
   return TCL_OK;
 }
 
+
 int readDataFromASCII(ClientData clientData, Tcl_Interp *interp,int objc, 
                       Tcl_Obj *const objv[])
 {
@@ -392,6 +384,7 @@ int readDataFromASCII(ClientData clientData, Tcl_Interp *interp,int objc,
   
   return TCL_OK;
 }
+
 
 int TV_ImgCmd(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *const objv[]){
   /* handles 'img' command */
@@ -768,10 +761,9 @@ int TV_ImgCmd(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *const
 }
 
 
-/****************************************************************************************
+/******************************************************************************
 dataset op name ....
-****************************************************************************************/
-
+******************************************************************************/
 int YF_dataset(ClientData clientData, Tcl_Interp *interp,
                int objc, Tcl_Obj *const objv[]) {
   const char *Options[] = {
@@ -893,6 +885,7 @@ int YF_dataset(ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }
 
+
 /******************************************************************************
 modelcc op name
 ******************************************************************************/
@@ -925,7 +918,7 @@ int YF_modelcc(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *cons
     mc = new ModelCalculator;
 
     mc->setModelParameter(0.01, "edisp");
-    mc->read_in_utable((char *)"dat/utab_nfit12.15.dat");
+    mc->read_in_utable((char *)"dat/utab_nfit12.12.dat");
 
     Tcl_HashEntry *entry = Tcl_CreateHashEntry(&modelccHT, Tcl_GetString(objv[2]), &newflag);
     entry->clientData = mc;
@@ -969,19 +962,22 @@ int updateParaObject(ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }
 
+
 /******************************************************************************
 setNFIT
 ******************************************************************************/
-int setNFIT(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+int setNFIT(ClientData clientData, Tcl_Interp *interp, int objc, 
+            Tcl_Obj *const objv[])
 {
   int numFreeParams = objc - 1;
   g_ParaStruct.setNfit(interp, objv + 1, numFreeParams);
   return TCL_OK;
 }
 
-/****************************************************************************************
+
+/******************************************************************************
 para op name
-****************************************************************************************/
+******************************************************************************/
 /*
 int YF_paraset(ClientData clientData, Tcl_Interp *interp,int objc, Tcl_Obj *const objv[])
 {
@@ -1254,19 +1250,9 @@ void *thread_lmdif(void *s)
   // covar_cminpack() results in segfault if total iteration is less than 2
   // derivative gets calculated for iter > 1
 	if (ntp->iter > 1) lmdif->covar_cminpack();
-
-  /*
-	Tcl_Interp *interp;
-	interp = NKinterp;
-	Para *p;
-	Tcl_HashEntry *entryPtr;
-	entryPtr=_getExistingPtr(interp, &paraHT, (char *) "p", (void**)&p);
-	*/
-
+	
   resetFlags();
 	bestChain = func->getBestChain();
-	// Update the hash table instead of NKparams. Type casting is necessary.
-	//bestChisq = func->recoverBestParams((double*)p);
 	bestChisq = func->recoverBestParams(&g_ParaStruct);
   printf("%s Xr: %g\n", bestChain, bestChisq);
   updatelinks(bestChisq, bestChain);
@@ -1276,6 +1262,7 @@ void *thread_lmdif(void *s)
   delete ntp;
   return NULL;
 }
+
 
 /****************************************************************************
 http://man7.org/linux/man-pages/man3/pthread_create.3.html
@@ -1388,9 +1375,12 @@ int updatelinks_async(ClientData clientData, Tcl_Interp *interp, int code)
   return code;
 }
 
+
 extern int Init_DSvectors(Tcl_Interp *interp);
 
-extern "C" int Toad_Init(Tcl_Interp *interp){
+
+extern "C" int Toad_Init(Tcl_Interp *interp)
+{
   /*
     this function
     create coustomize commands in tcl
@@ -1541,6 +1531,7 @@ extern "C" int Toad_Init(Tcl_Interp *interp){
   return TCL_OK;
 }
 
+
 /*Thread safe means of updating variables associated with a fitting run in the
   Tcl script from the fitting thread.
 */
@@ -1549,6 +1540,7 @@ void updatelinks(double xisq, char *chain){
   update->chain = chain;
   Tcl_AsyncMark(updateHandler);
 }
+
 
 //function controlling the refinement (filtering the outstanding points)
 double refine(double theor, double exper){

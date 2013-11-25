@@ -16,10 +16,10 @@ extern int stopflag;
 extern int nthreads;
 
 /*FunSupport parameters*/
-extern double g_spRotatedAbserr;
-extern double g_spRotatedRelerr;
-extern double g_spRotatedMindx;
-extern double g_spRotatedMaxdx;
+//extern double g_spRotatedAbserr;
+//extern double g_spRotatedRelerr;
+//extern double g_spRotatedMindx;
+//extern double g_spRotatedMaxdx;
 extern double g_spStrFctAbserr;
 extern double g_spStrFctRelerr;
 extern double g_spStrFctMindx;
@@ -39,5 +39,6 @@ extern double g_spHrMaxdx;
 extern double g_epsabs; //absolute error tolerance
 extern double g_epsrel; //relative error tolerance
 //extern int g_key; //key
+extern double g_omega;
 
 #endif

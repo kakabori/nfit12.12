@@ -3,7 +3,6 @@
 
 #include <math.h>
 #include <gsl/gsl_integration.h>
-//#include <tcl.h>
 #include <vector>
 #include <string>
 #include "Para.h"
@@ -11,17 +10,12 @@
 #include "nfit.h"
 #include "funsupport.h"
 #include "utable.h"
-//#include "alglib/src/stdafx.h"
-//#include "alglib/src/interpolation.h"
 
-//using namespace alglib;
 #define PI 3.1415926535897932384626433832795
 
 double Pr(double, double);
 double finiteSizeFactor(double);
-double bessel_J0(double x);
-double getLowerLimit(double, double, double);
-double getUpperLimit(double, double, double);
+double getCurrQy(double, double, double, double);
 enum Var stringToVarEnum(const std::string &);
 
 /****************************************************************************************
@@ -32,19 +26,23 @@ FuncLmdif should bind to this class object for chi square minimization
 class ModelCalculator {
 public:
   ModelCalculator();
-  //This constructor provides a means of cloning a ModelCalculator object
+  // This constructor takes the incident angle as its input
+  ModelCalculator(double);
+  // This constructor provides a means of cloning a ModelCalculator object
   ModelCalculator(const ModelCalculator& mc);
   ~ModelCalculator(){cleanup();}
   void cleanup();
+  void helpConstructor();
   
   // setters and getters
   void setModelParameter(double, const std::string&);
   void setModelParameter(double, const char *);
   void setpara(double, int);
   void paraSet(Para *p);
+  void setOmega(double w) {omega = w * PI / 180;}
 
   // Utable utilities
-  void read_in_utable(const char *f){utable.readUtableFile(f);}
+  void read_in_utable(const char *f) {utable.readUtableFile(f);}
   
   // FunSupport utilities
   void resetTOL();
@@ -55,8 +53,6 @@ public:
   double getCCDStrFct(double);
 
 	// core functions that calculate the structure factor
-	static double s_rotatedWrapper(double, void *);
-	static double s_qyIntegrandWrapper(double, void *);
 	double StrFct(double);
   double sumn(double);
   double Hr(double);
@@ -66,10 +62,10 @@ public:
   static double s_sumnWrapper(double, void *);
   static double s_HrWrapper(double, void *);
   static double s_HrIntegrand(double, void *);
-	double rotated(double);
 	double beamConvolutedStrFct(double);
 	static double s_convIntegrand(double, void *);
 	double beamProfile(double);
+  double interpStrFct(double);
   
   // a bunch of functions that are useful in debugging
   void get_spStrFctPoints(std::vector<double>&, std::vector<double>&);
@@ -85,7 +81,7 @@ private:
   double avgLr, avgMz;
 	double edisp;
 	double mosaic;
-  double wavelength, pixelSize, bFWHM, sdistance, beamSigma;
+  double wavelength, pixelSize, bFWHM, sdistance, beamSigma, omega;
 
   // cutoff for r integration and sum over n
   double cutoff_r, cutoff_n;
