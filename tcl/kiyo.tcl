@@ -7,3 +7,6 @@ proc create_kiyomask {qrlow qrhigh qzlow qzhigh} {
 	close $fid
 }
 
+proc fixedangle {} {
+  cd ~/Documents/dopcdope_3to1/
+}
